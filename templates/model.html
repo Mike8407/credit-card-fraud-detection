@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Model{% endblock %}
+{% block content %}
+<h2 class="mb-1">About the model</h2>
+<p class="text-secondary">Logistic Regression with feature scaling and class weighting, trained on {{ n_features }} features. The decision threshold was tuned on a separate validation set; the numbers below come from an untouched test set.</p>
+{% if m %}
+<div class="row g-3 mb-4">
+  {% for k, n in [('precision','Precision'),('recall','Recall'),('f1','F1-score'),('roc_auc','ROC AUC'),('avg_precision','Avg. precision (PR)')] %}
+  <div class="col-6 col-md"><div class="card p-3"><div class="text-secondary small">{{ n }}</div><div class="stat">{{ '%.3f'|format(m[k]) }}</div></div></div>
+  {% endfor %}
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-6"><div class="card p-3 small">
+    <div><strong>Test set:</strong> {{ '{:,}'.format(m.n_test) }} transactions · fraud rate {{ '%.3f'|format(m.fraud_rate * 100) }}%</div>
+    <div><strong>Confusion matrix:</strong> TP {{ m.tp }} · FP {{ m.fp }} · FN {{ m.fn }} · TN {{ m.tn }}</div>
+    <div><strong>Threshold:</strong> {{ '%.3f'|format(m.threshold) }} (tuned for best F1 on validation data)</div>
+    <div><strong>Accuracy:</strong> {{ '%.4f'|format(m.accuracy) }} — misleading on imbalanced data, so precision/recall are the key metrics.</div>
+  </div></div>
+</div>
+<div class="row g-3">
+  {% for img, t in [('confusion_matrix','Confusion matrix'),('roc_curve','ROC curve'),('pr_curve','Precision-Recall curve')] %}
+  <div class="col-md-4"><div class="card p-2 text-center"><div class="small text-secondary mb-1">{{ t }}</div>
+    <img class="img-fluid rounded" src="{{ url_for('static', filename=img ~ '.png') }}" alt="{{ t }}"></div></div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-warning">No metrics file found. Run <code>python train.py --train your_data.csv</code> first.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2 class="mb-1">Dashboard</h2>
+<p class="text-secondary">Live overview of every transaction scored by the model and stored in the database.</p>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><div class="card p-3"><div class="text-secondary small">Transactions scored</div><div class="stat">{{ total }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="card p-3"><div class="text-secondary small">Flagged as fraud</div><div class="stat text-danger">{{ fraud }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="card p-3"><div class="text-secondary small">Fraud rate</div><div class="stat">{{ '%.1f'|format(rate) }}%</div></div></div>
+  <div class="col-6 col-lg-3"><div class="card p-3"><div class="text-secondary small">Decision threshold</div><div class="stat">{{ '%.3f'|format(threshold) }}</div></div></div>
+</div>
+{% if perf %}
+<div class="card p-3 mb-4">
+  <h6 class="mb-2">Live accuracy on dataset transactions (true label known)</h6>
+  <div class="d-flex flex-wrap gap-4 small">
+    <span>Fraud caught: <strong class="text-success">{{ perf.tp }}</strong></span>
+    <span>Fraud missed: <strong class="text-danger">{{ perf.fn }}</strong></span>
+    <span>False alarms: <strong class="text-warning">{{ perf.fp }}</strong></span>
+    <span>Correct legit: <strong>{{ perf.tn }}</strong></span>
+    <span>Recall: <strong>{{ '%.1f'|format(perf.recall * 100) if perf.recall is not none else '–' }}%</strong></span>
+    <span>Precision: <strong>{{ '%.1f'|format(perf.precision * 100) if perf.precision is not none else '–' }}%</strong></span>
+  </div>
+</div>
+{% endif %}
+{% if total == 0 %}
+<div class="card p-4 text-center">
+  <h5>No data yet</h5>
+  <p class="text-secondary mb-3">Scan some transactions from the built-in dataset to see the dashboard come alive.</p>
+  <div><a class="btn btn-primary me-2" href="{{ url_for('scan') }}">Scan dataset</a><a class="btn btn-outline-secondary" href="{{ url_for('predict') }}">Check a transaction</a></div>
+</div>
+{% else %}
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card p-3"><h6>Fraud vs Legit</h6><canvas id="pie" height="220"></canvas></div></div>
+  <div class="col-lg-8"><div class="card p-3"><h6>Fraud probability of the last {{ chart_values|length }} transactions</h6><canvas id="bars" height="110"></canvas></div></div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if total > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('pie'), {
+  type: 'doughnut',
+  data: { labels: ['Legit', 'Fraud'], datasets: [{ data: [{{ legit }}, {{ fraud }}], backgroundColor: ['#198754', '#dc3545'], borderWidth: 0 }] },
+  options: { plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('bars'), {
+  type: 'bar',
+  data: { labels: {{ chart_labels|tojson }}, datasets: [{ label: 'Fraud probability', data: {{ chart_values|tojson }}, backgroundColor: {{ chart_colors|tojson }} }] },
+  options: { scales: { y: { min: 0, max: 1 } }, plugins: { legend: { display: false } } }
+});
+</script>
+{% endif %}
+{% endblock %}

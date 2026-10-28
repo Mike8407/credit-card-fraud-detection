@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Scan Dataset{% endblock %}
+{% block content %}
+<h2 class="mb-1">Scan the dataset</h2>
+<p class="text-secondary">The app ships with {{ '{:,}'.format(n_demo) }} real credit card transactions ({{ n_fraud_demo }} confirmed fraud) that the model never saw during training. Pick how many to scan: the model scores each one, and the results are compared with the true labels and saved to the database.</p>
+<div class="card p-4 mb-4">
+  <form method="post" class="d-flex flex-wrap gap-3 align-items-end">
+    <div>
+      <label class="form-label small text-secondary mb-1">Transactions to scan</label>
+      <select name="n" class="form-select">
+        {% for v in [50, 100, 250, 500, 1000] %}<option value="{{ v }}" {{ 'selected' if v == 250 }}>{{ v }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" name="fraud_rich" id="rich" checked>
+      <label class="form-check-label" for="rich">Include extra fraud cases (≈20%)</label>
+    </div>
+    <button class="btn btn-primary" type="submit">Scan transactions</button>
+  </form>
+  <div class="text-secondary small mt-3">Real fraud is very rare (≈0.17% of transactions), so without the extra fraud cases a small scan might contain none.</div>
+</div>
+
+{% if summary %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="text-secondary small">Scanned</div><div class="stat">{{ summary.rows }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="text-secondary small">Flagged as fraud</div><div class="stat text-danger">{{ summary.flagged }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="text-secondary small">Actual fraud in batch</div><div class="stat">{{ summary.actual_fraud }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="text-secondary small">Fraud caught</div><div class="stat text-success">{{ summary.tp }} / {{ summary.actual_fraud }}</div></div></div>
+</div>
+<div class="card p-3 small mb-3">
+  <strong>Breakdown:</strong>
+  <span class="ms-2">✅ Correctly flagged fraud: {{ summary.tp }}</span>
+  <span class="ms-3">✅ Correctly passed legit: {{ summary.tn }}</span>
+  <span class="ms-3">⚠️ False alarms: {{ summary.fp }}</span>
+  <span class="ms-3">🚨 Missed fraud: {{ summary.fn }}</span>
+</div>
+<a class="btn btn-outline-light" href="{{ url_for('history', label='FRAUD') }}">View flagged transactions</a>
+{% endif %}
+{% endblock %}

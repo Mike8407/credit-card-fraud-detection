@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Check Transaction{% endblock %}
+{% block content %}
+<h2 class="mb-1">Check a transaction</h2>
+<p class="text-secondary">Load a real transaction from the built-in dataset (or type your own values) and the model returns a fraud probability. The result is saved to the database.</p>
+
+{% if result %}
+<div class="card p-4 mb-4 border-{{ 'danger' if result.label == 'FRAUD' else 'success' }}">
+  <div class="d-flex flex-wrap align-items-center gap-4">
+    <div>
+      <div class="text-secondary small">Verdict</div>
+      <div class="stat {{ 'text-danger' if result.label == 'FRAUD' else 'text-success' }}">
+        {{ '🚨 FRAUD' if result.label == 'FRAUD' else '✅ Legit' }}
+      </div>
+    </div>
+    <div class="flex-grow-1" style="min-width:220px">
+      <div class="d-flex justify-content-between small"><span>Fraud probability</span><strong>{{ '%.2f'|format(result.probability * 100) }}%</strong></div>
+      <div class="progress mt-1" style="height:12px"><div class="progress-bar {{ 'bg-danger' if result.label == 'FRAUD' else 'bg-success' }}" style="width: {{ result.probability * 100 }}%"></div></div>
+      <div class="text-secondary small mt-1">Flagged when probability ≥ {{ '%.3f'|format(threshold) }}</div>
+    </div>
+    {% if result.outcome %}
+    <div>
+      <div class="text-secondary small">Actual label in dataset</div>
+      <div class="fw-semibold">{{ 'Fraud' if result.actual == 1 else 'Legit' }}</div>
+      <span class="badge text-bg-{{ result.outcome[1] }}">{{ result.outcome[0] }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<form method="post" class="card p-3">
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadSample('any')">Load random transaction</button>
+    <button type="button" class="btn btn-sm btn-outline-success" onclick="loadSample('legit')">Load legit example</button>
+    <button type="button" class="btn btn-sm btn-outline-danger" onclick="loadSample('fraud')">Load fraud example</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearForm()">Clear</button>
+    <span id="note" class="small text-secondary align-self-center"></span>
+    <input type="hidden" name="actual" id="actual" value="{{ actual_raw }}">
+  </div>
+  <div class="feature-grid">
+    {% for c in columns %}
+    <div><label for="f{{ loop.index0 }}">{{ c }}</label>
+      <input class="form-control form-control-sm" id="f{{ loop.index0 }}" name="{{ c }}" type="number" step="any" required value="{{ values.get(c, '') }}"></div>
+    {% endfor %}
+  </div>
+  <div class="mt-3"><button class="btn btn-primary" type="submit">Analyze transaction</button></div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const inputs = () => document.querySelectorAll('.feature-grid input');
+const actual = document.getElementById('actual');
+const note = document.getElementById('note');
+async function loadSample(kind) {
+  const r = await fetch('/api/sample?kind=' + kind);
+  const d = await r.json();
+  inputs().forEach(el => el.value = d.features[el.name]);
+  actual.value = d.actual;          // true label is revealed after analysis
+  note.textContent = 'Loaded real transaction #' + d.tx_id + ' from the dataset.';
+}
+function clearForm() { inputs().forEach(el => el.value = ''); actual.value = ''; note.textContent = ''; }
+// editing a value means it is no longer the original dataset transaction
+inputs().forEach(el => el.addEventListener('input', () => { actual.value = ''; note.textContent = ''; }));
+</script>
+{% endblock %}

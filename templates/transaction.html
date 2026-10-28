@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Transaction #{{ row.id }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('history') }}" class="text-decoration-none">← Back to database</a>
+<h2 class="mt-2">Transaction #{{ row.id }}
+  <span class="badge {{ 'text-bg-danger' if row.label == 'FRAUD' else 'text-bg-success' }} fs-6 align-middle">{{ row.label }}</span></h2>
+<p class="text-secondary">{{ row.created_at }} UTC · source: {{ row.source }} · fraud probability <strong>{{ '%.2f'|format(row.probability * 100) }}%</strong> (threshold {{ '%.3f'|format(threshold) }}){% if row.actual is not none %} · actual label: <strong>{{ 'Fraud' if row.actual == 1 else 'Legit' }}</strong> {{ '✓' if (row.actual == 1) == (row.label == 'FRAUD') else '✗' }}{% endif %}</p>
+<div class="card p-3"><div class="feature-grid">
+  {% for k, v in features.items() %}
+  <div><label>{{ k }}</label><div class="form-control form-control-sm bg-transparent">{{ v }}</div></div>
+  {% endfor %}
+</div></div>
+{% endblock %}
